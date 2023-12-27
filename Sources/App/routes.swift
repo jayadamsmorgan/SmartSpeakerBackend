@@ -3,6 +3,9 @@ import Vapor
 
 func routes(_ app: Application) throws {
     // AUTH
+    app.get { req async throws in
+        "It works!"
+    }
     app.post("api", "v1", "auth", "login") { req async throws -> AuthResponse in
         let authDTO = try req.content.decode(AuthDTO.self)
         return await AuthService.authenticate(with: authDTO)
@@ -12,5 +15,5 @@ func routes(_ app: Application) throws {
         return await AuthService.register(with: authDTO)
     }
 
-    //try app.register(collection: TodoController())
+    try app.register(collection: UserController())
 }
