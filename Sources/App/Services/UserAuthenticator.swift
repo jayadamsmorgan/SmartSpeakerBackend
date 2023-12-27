@@ -1,5 +1,5 @@
 import Vapor
-
+/*
 struct UserAuthenticator: BearerAuthenticator {
 
     func authenticate(
@@ -14,4 +14,4 @@ struct UserAuthenticator: BearerAuthenticator {
         return request.eventLoop.makeSucceededFuture(())
    }
 }
-
+*/
