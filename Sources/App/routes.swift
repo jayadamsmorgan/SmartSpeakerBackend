@@ -6,14 +6,7 @@ func routes(_ app: Application) throws {
     app.get { req async throws in
         "It works!"
     }
-    app.post("api", "v1", "auth", "login") { req async throws -> AuthResponse in
-        let authDTO = try req.content.decode(AuthDTO.self)
-        return await AuthService.authenticate(with: authDTO)
-    }
-    app.post("api", "v1", "auth", "register") { req async throws -> AuthResponse in
-        let authDTO = try req.content.decode(AuthDTO.self)
-        return await AuthService.register(with: authDTO)
-    }
 
+    try app.register(collection: AuthController())
     try app.register(collection: UserController())
 }

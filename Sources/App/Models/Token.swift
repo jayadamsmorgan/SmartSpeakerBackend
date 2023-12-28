@@ -1,28 +1,33 @@
 import Vapor
 import Fluent
+import JWT
 
-final class Token: Model, Content {
+// Example JWT payload.
+struct SessionToken: Content, Authenticatable, JWTPayload {
 
-    static let schema = "tokens"
+    // Constants
+    let expirationTime: TimeInterval = 60 * 60 * 24 * 30 // 30 days
 
-    @ID(key: .id)
-    var id: UUID?
+    // Token Data
+    var expiration: ExpirationClaim
+    var userId: UUID
 
-    @Field(key: "token")
-    var token: String
-
-    @Field(key: "userID")
-    var userID: UUID
-
-    @Field(key: "dateOfCreation")
-    var dateOfCreation: String // ?
-
-    init() { }
-
-    init(id: UUID? = nil, token: String, userID: UUID) {
-        self.id = id
-        self.token = token
-        self.userID = userID
+    init(userId: UUID) {
+        self.userId = userId
+        self.expiration = ExpirationClaim(value: Date().addingTimeInterval(expirationTime))
     }
-    
+
+    init(user: User) throws {
+        self.userId = try user.requireID()
+        self.expiration = ExpirationClaim(value: Date().addingTimeInterval(expirationTime))
+    }
+
+    func verify(using signer: JWTSigner) throws {
+        try expiration.verifyNotExpired()
+    }
 }
+
+struct ClientTokenReponse: Content {
+    var token: String
+}
+
