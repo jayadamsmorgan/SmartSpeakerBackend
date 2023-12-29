@@ -51,19 +51,35 @@ struct AuthController: RouteCollection {
             logger.info("Register: Bad request: Content is misssing username.")
             throw Abort(.badRequest)
         }
+        if try await User.query(on: req.db).filter("username", .equal, username).first() != nil {
+            logger.info("Register: User with username \(username) already exists.")
+            throw Abort(.notAcceptable)
+        }
         guard let email = authDTO.email else {
             logger.info("Register: Bad request: Content is missing email.")
             throw Abort(.badRequest)
+        }
+        if try await User.query(on: req.db).filter("email", .equal, email).first() != nil {
+            logger.info("Register: User with email \(email) already exists.")
+            throw Abort(.notAcceptable)
         }
         guard let phoneNumber = authDTO.phoneNumber else {
             logger.info("Register: Bad request: Content is missing phoneNumber.")
             throw Abort(.badRequest)
         }
-        guard let passwod = authDTO.password else {
+        if try await User.query(on: req.db).filter("phoneNumber", .equal, phoneNumber).first() != nil {
+            logger.info("Register: User with phone number \(phoneNumber) already exists.")
+            throw Abort(.notAcceptable)
+        }
+        guard let password = authDTO.password else {
             logger.info("Register: Bad request: Content is missing password.")
             throw Abort(.badRequest)
         }
-        throw Abort(.notImplemented)
+        let passwordHash = try req.password.hash(password)
+        let user = User(id: UUID.generateRandom(), username: username, email: email, phoneNumber: phoneNumber, name: nil, passwordHash: passwordHash)
+        try await user.create(on: req.db)
+        logger.info("Register: User \(user) created successfully.")
+        let token = Token(id: UUID.generateRandom())
     }
 
 
