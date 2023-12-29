@@ -56,7 +56,11 @@ struct AuthController: RouteCollection {
             throw Abort(.badRequest)
         }
         guard let phoneNumber = authDTO.phoneNumber else {
-            logger.info("Register: Bad request: Content is missing phoneNumber")
+            logger.info("Register: Bad request: Content is missing phoneNumber.")
+            throw Abort(.badRequest)
+        }
+        guard let passwod = authDTO.password else {
+            logger.info("Register: Bad request: Content is missing password.")
             throw Abort(.badRequest)
         }
         throw Abort(.notImplemented)

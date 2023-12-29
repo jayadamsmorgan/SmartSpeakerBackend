@@ -27,6 +27,24 @@ struct SessionToken: Content, Authenticatable, JWTPayload {
     }
 }
 
+final class Token: Content, Model {
+
+    static let schema = "tokens"
+
+    @ID(key: .id)
+    var id: UUID?
+
+    @Field(key: "token")
+    var token: String
+
+    @Field(key: "userId")
+    var userId: UUID
+
+    @Field(key: "isExpired")
+    var isExpired: Bool
+
+}
+
 struct ClientTokenReponse: Content {
     var token: String
 }

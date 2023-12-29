@@ -8,5 +8,9 @@ func routes(_ app: Application) throws {
     }
 
     try app.register(collection: AuthController())
-    try app.register(collection: UserController())
+    try app.grouped(UserAuthenticator()).register(collection: UserController())
+
+    app.grouped(UserAuthenticator()).get("testAuth") { req async throws in
+        "It works!"
+    }
 }
