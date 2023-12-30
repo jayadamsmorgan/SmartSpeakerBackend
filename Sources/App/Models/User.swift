@@ -13,9 +13,6 @@ final class User: Model, Content, Authenticatable {
     @Field(key: "email")
     var email: String?
 
-    @Field(key: "phoneNumber")
-    var phoneNumber: String?
-
     @Field(key: "name")
     var name: String?
 
@@ -27,8 +24,7 @@ final class User: Model, Content, Authenticatable {
     init(id: UUID? = nil,
         username: String,
         email: String?,
-        phoneNumber: String?,
-        name: String?,
+        name: String? = nil,
         passwordHash: String) {
         self.id = id
         self.username = username
@@ -44,7 +40,6 @@ struct UserInfoDTO: Content {
     var name: String?
     var username: String?
     var email: String?
-    var phoneNumber: String?
 }
 
 

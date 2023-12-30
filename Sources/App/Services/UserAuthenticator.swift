@@ -12,7 +12,7 @@ struct UserAuthenticator: AsyncBearerAuthenticator {
             throw Abort(.unauthorized)
         }
         request.logger.info("UserAuthenticator: Token found in database: \(token)")
-        guard let user = try await User.query(on: request.db).filter("userId", .equal, token.userId).first() else {
+        guard let user = try await User.find(token.userId, on: request.db) else {
             request.logger.info("UserAuthenticator: Could not locate user with userId \(token.userId)")
             throw Abort(.unauthorized)
         }

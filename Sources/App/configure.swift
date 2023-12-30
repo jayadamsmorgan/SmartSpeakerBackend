@@ -11,8 +11,11 @@ public func configure(_ app: Application) async throws {
     
     app.databases.use(DatabaseConfigurationFactory.sqlite(.file("db.sqlite")), as: .sqlite)
     app.jwt.signers.use(.hs256(key: "some-secret-key"))
+    app.passwords.use(.bcrypt)
     app.migrations.add(CreateToken())
     app.migrations.add(CreateUser())
+
+    try await app.autoMigrate()
 
     // register routes
     try routes(app)

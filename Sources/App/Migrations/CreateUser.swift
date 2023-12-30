@@ -6,14 +6,13 @@ struct CreateUser: AsyncMigration {
             .id()
             .field("username", .string, .required)
             .field("password", .string, .required)
-            .field("email", .string)
-            .field("phoneNumber", .string)
+            .field("email", .string, .required)
             .field("name", .string)
             .create()
     }
 
     func revert(on database: Database) async throws {
-        try await database.schema("tokens").delete()
+        try await database.schema("users").delete()
     }
 }
 

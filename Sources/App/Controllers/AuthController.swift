@@ -9,7 +9,16 @@ struct AuthController: RouteCollection {
         authRoutes.post("register", use: register)
     }
 
-    func authenticate(req: Request) async throws -> SessionToken {
+    fileprivate func createNewToken(userId: UUID, req: Request) async throws -> Token {
+        let jwtPayload = SessionToken(userId: userId)
+        let tokenStr = try req.jwt.sign(jwtPayload)
+        let newToken = Token(token: tokenStr, userId: userId)
+        try await newToken.save(on: req.db)
+        req.logger.info("New token for user with ID \(userId) saved successfully.")
+        return newToken
+    }
+
+    func authenticate(req: Request) async throws -> ClientTokenReponse {
         let logger = req.logger
         logger.info("Authenticate: New authentication request: \(req.content)")
         let authDTO = try req.content.decode(AuthDTO.self)
@@ -23,10 +32,6 @@ struct AuthController: RouteCollection {
         } else if let email = authDTO.email {
             user = try await userQuery
                 .filter("email", .equal, email)
-                .first()
-        } else if let phoneNumber = authDTO.phoneNumber {
-            user = try await userQuery
-                .filter("phoneNumber", .equal, phoneNumber)
                 .first()
         }
         guard let user = user else {
@@ -42,11 +47,15 @@ struct AuthController: RouteCollection {
             logger.info("Authenticate: Cannot get userId \(user).")
             throw Abort(.internalServerError)
         }
+        if try !req.password.verify(userpassword, created: user.passwordHash){
+            logger.info("Authenticate: Wrong password provided for authentication request \(authDTO).")
+            throw Abort(.badRequest)
+        }
         let userTokens = try await Token.query(on: req.db)
             .filter("userId", .equal, userId)
             .limit(100)
             .all()
-        let existingToken: Token?
+        var existingToken: Token?
         for token in userTokens {
             guard let issuedDate = Date.init(rfc1123: token.issuedOn) else {
                 logger.info("Authenticate: Cannot get issued date of token \(token) for user with ID \(userId).")
@@ -62,29 +71,18 @@ struct AuthController: RouteCollection {
             }
             existingToken = token
         }
-        if existingToken == nil {
-            let jwtPayload: SessionToken = try req.jwt.verify()
-            let newToken = Token()
-            newToken.token = 
-            newToken.issuedOn = Date.now.rfc1123
-            try await newToken.save(on: req.db)
-            return SessionToken()
+        guard let existingToken = existingToken else {
+            let token = try await createNewToken(userId: userId, req: req)
+            return ClientTokenReponse(token: token.token)
         }
-
-        // TODO: Authenticate with authDTO password
-        throw Abort(.notImplemented)
+        return ClientTokenReponse(token: existingToken.token)
     }
 
-    func register(req: Request) async throws -> SessionToken {
+    func register(req: Request) async throws -> ClientTokenReponse {
         let logger = req.logger
         logger.info("Register: New registration request: \(req.content)")
         let authDTO: AuthDTO
-        do {
-            authDTO = try req.content.decode(AuthDTO.self)
-        } catch {
-            logger.info("Register: Bad request: Content is not an AuthDTO instance.")
-            throw Abort(.badRequest)
-        }
+        authDTO = try req.content.decode(AuthDTO.self)
         guard let username = authDTO.username else {
             logger.info("Register: Bad request: Content is misssing username.")
             throw Abort(.badRequest)
@@ -101,23 +99,20 @@ struct AuthController: RouteCollection {
             logger.info("Register: User with email \(email) already exists.")
             throw Abort(.notAcceptable)
         }
-        guard let phoneNumber = authDTO.phoneNumber else {
-            logger.info("Register: Bad request: Content is missing phoneNumber.")
-            throw Abort(.badRequest)
-        }
-        if try await User.query(on: req.db).filter("phoneNumber", .equal, phoneNumber).first() != nil {
-            logger.info("Register: User with phone number \(phoneNumber) already exists.")
-            throw Abort(.notAcceptable)
-        }
         guard let password = authDTO.password else {
             logger.info("Register: Bad request: Content is missing password.")
             throw Abort(.badRequest)
         }
         let passwordHash = try req.password.hash(password)
-        let user = User(id: UUID.generateRandom(), username: username, email: email, phoneNumber: phoneNumber, name: nil, passwordHash: passwordHash)
+        let user = User(username: username, email: email, passwordHash: passwordHash)
         try await user.create(on: req.db)
         logger.info("Register: User \(user) created successfully.")
-        let token = Token(id: UUID.generateRandom())
+        guard let userId = user.id else {
+            logger.info("Register: Cannot get userId of new user \(user).")
+            throw Abort(.internalServerError)
+        }
+        let token = try await createNewToken(userId: userId, req: req)
+        return ClientTokenReponse(token: token.token)
     }
 
 
