@@ -1,11 +1,14 @@
 import Vapor
 import Fluent
 
-final class User: Model, Content, Authenticatable {
+final class User: Model, Content {
     static let schema = "users"
 
     @ID(key: .id)
     var id: UUID?
+
+    @Field(key: "userType")
+    var userType: UserType
     
     @Field(key: "username")
     var username: String
@@ -22,6 +25,7 @@ final class User: Model, Content, Authenticatable {
     init() { }
 
     init(id: UUID? = nil,
+        userType: UserType = .user,
         username: String,
         email: String?,
         name: String? = nil,
@@ -35,10 +39,16 @@ final class User: Model, Content, Authenticatable {
 
 }
 
+enum UserType: String, Codable {
+    case admin = "ADMIN"
+    case user = "USER"
+}
+
 struct UserInfoDTO: Content {
     var id: String
+    var userType: UserType
     var name: String?
-    var username: String?
+    var username: String
     var email: String?
 }
 
