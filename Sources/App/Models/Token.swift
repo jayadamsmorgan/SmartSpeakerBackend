@@ -2,6 +2,12 @@ import Vapor
 import Fluent
 import JWT
 
+struct CustomJWTClaim: JWTClaim {
+
+    var value: String
+
+}
+
 // Example JWT payload.
 struct SessionToken: Content, Authenticatable, JWTPayload {
 
@@ -40,9 +46,8 @@ final class Token: Content, Model {
     @Field(key: "userId")
     var userId: UUID
 
-    @Field(key: "isExpired")
-    var isExpired: Bool
-
+    @Field(key: "issuedOn")
+    var issuedOn: String
 }
 
 struct ClientTokenReponse: Content {

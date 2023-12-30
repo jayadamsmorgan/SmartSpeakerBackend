@@ -1,5 +1,6 @@
 import Vapor
 import Fluent
+import JWT
 
 struct AuthController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
@@ -14,15 +15,19 @@ struct AuthController: RouteCollection {
         let authDTO = try req.content.decode(AuthDTO.self)
         var user: User?
         // Find user by either username, email or phoneNumber, whichever one is provided in AuthDTO request
+        let userQuery = User.query(on: req.db)
         if let username = authDTO.username {
-            user = try await req.db.query(User.self)
-                .filter("username", .equal, username).first()
+            user = try await userQuery
+                .filter("username", .equal, username)
+                .first()
         } else if let email = authDTO.email {
-            user = try await req.db.query(User.self)
-                .filter("email", .equal, email).first()
+            user = try await userQuery
+                .filter("email", .equal, email)
+                .first()
         } else if let phoneNumber = authDTO.phoneNumber {
-            user = try await req.db.query(User.self)
-                .filter("phoneNumber", .equal, phoneNumber).first()
+            user = try await userQuery
+                .filter("phoneNumber", .equal, phoneNumber)
+                .first()
         }
         guard let user = user else {
             logger.info("Authenticate: Authenticating user not found.")
@@ -33,6 +38,39 @@ struct AuthController: RouteCollection {
             logger.info("Authenticate: Password not provided.")
             throw Abort(.badRequest)
         }
+        guard let userId = user.id else {
+            logger.info("Authenticate: Cannot get userId \(user).")
+            throw Abort(.internalServerError)
+        }
+        let userTokens = try await Token.query(on: req.db)
+            .filter("userId", .equal, userId)
+            .limit(100)
+            .all()
+        let existingToken: Token?
+        for token in userTokens {
+            guard let issuedDate = Date.init(rfc1123: token.issuedOn) else {
+                logger.info("Authenticate: Cannot get issued date of token \(token) for user with ID \(userId).")
+                continue
+            }
+            guard let tokenId = token.id else {
+                logger.info("Authenticate: Cannot get tokenId of token \(token).")
+                continue
+            }
+            if issuedDate.addingTimeInterval(1000 * 60 * 60 * 24 * 30) >= Date.now {
+                logger.info("Authenticate: Token with ID \(tokenId) is expired and being removed.")
+                try await token.delete(on: req.db)
+            }
+            existingToken = token
+        }
+        if existingToken == nil {
+            let jwtPayload: SessionToken = try req.jwt.verify()
+            let newToken = Token()
+            newToken.token = 
+            newToken.issuedOn = Date.now.rfc1123
+            try await newToken.save(on: req.db)
+            return SessionToken()
+        }
+
         // TODO: Authenticate with authDTO password
         throw Abort(.notImplemented)
     }
