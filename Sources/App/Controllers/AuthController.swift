@@ -3,6 +3,7 @@ import Fluent
 import JWT
 
 struct AuthController: RouteCollection {
+
     func boot(routes: RoutesBuilder) throws {
         let authRoutes = routes.grouped("auth")
         authRoutes.post("authenticate", use: authenticate)
@@ -20,7 +21,7 @@ struct AuthController: RouteCollection {
 
     func authenticate(req: Request) async throws -> ClientTokenReponse {
         let logger = req.logger
-        logger.info("Authenticate: New authentication request: \(req.content)")
+        logger.info("Authenticate: New authentication request: \(req.content).")
         let authDTO = try req.content.decode(AuthDTO.self)
         var user: User?
         // Find user by either username, email or phoneNumber, whichever one is provided in AuthDTO request
@@ -38,7 +39,7 @@ struct AuthController: RouteCollection {
             logger.info("Authenticate: Authenticating user not found.")
             throw Abort(.notFound)
         }
-        logger.info("Authenticate: Authenticating user found: \(user)")
+        logger.info("Authenticate: Authenticating user found: \(user).")
         guard let userpassword = authDTO.password else {
             logger.info("Authenticate: Password not provided.")
             throw Abort(.badRequest)
@@ -65,9 +66,10 @@ struct AuthController: RouteCollection {
                 logger.info("Authenticate: Cannot get tokenId of token \(token).")
                 continue
             }
-            if issuedDate.addingTimeInterval(1000 * 60 * 60 * 24 * 30) >= Date.now {
+            if issuedDate.addingTimeInterval(1000 * 60 * 60 * 24 * 30) <= Date.now {
                 logger.info("Authenticate: Token with ID \(tokenId) is expired and being removed.")
                 try await token.delete(on: req.db)
+                continue
             }
             existingToken = token
         }
@@ -80,7 +82,7 @@ struct AuthController: RouteCollection {
 
     func register(req: Request) async throws -> ClientTokenReponse {
         let logger = req.logger
-        logger.info("Register: New registration request: \(req.content)")
+        logger.info("Register: New registration request: \(req.content).")
         let authDTO: AuthDTO
         authDTO = try req.content.decode(AuthDTO.self)
         guard let username = authDTO.username else {
@@ -104,7 +106,7 @@ struct AuthController: RouteCollection {
             throw Abort(.badRequest)
         }
         let passwordHash = try req.password.hash(password)
-        let user = User(username: username, email: email, passwordHash: passwordHash)
+        let user = User(userType: .user, username: username, email: email, passwordHash: passwordHash)
         try await user.create(on: req.db)
         logger.info("Register: User \(user) created successfully.")
         guard let userId = user.id else {

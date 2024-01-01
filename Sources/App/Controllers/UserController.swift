@@ -11,28 +11,9 @@ struct UserController: RouteCollection {
         }
     }
 
-    func getUserFromRequest(req: Request) async -> User? {
-        do {
-            guard let tokenStr = req.headers.bearerAuthorization?.token else {
-                req.logger.error("isRequestAuthorized: Cannot find token in request.")
-                return nil
-            }
-            guard let token = try await Token.query(on: req.db).filter("token", .equal, tokenStr).first() else {
-                req.logger.error("isRequestAuthorized: Cannot find token \(tokenStr) in database.")
-                return nil
-            }
-            guard let user = try await User.query(on: req.db).filter("id", .equal, token.userId).first() else {
-                req.logger.error("isRequestAuthorized: Cannot find user for token \(token).")
-                return nil
-            }
-            return user
-        } catch {
-            return nil
-        }
-    }
-
     func index(req: Request) async throws -> [UserInfoDTO] {
-        guard let userMakingRequest = await getUserFromRequest(req: req) else {
+        guard let userMakingRequest = req.auth.get(User.self) else {
+            req.logger.info("GET /users: Cannot get User from request.")
             throw Abort(.internalServerError)
         }
         var userDTOs: [UserInfoDTO] = []
@@ -47,12 +28,13 @@ struct UserController: RouteCollection {
                                     name: user.name,
                                     username: user.username,
                                     email: user.email))
+            } else {
+                userDTOs.append(UserInfoDTO(
+                                    id: userIdStr,
+                                    userType: user.userType,
+                                    name: user.name,
+                                    username: user.username))
             }
-            userDTOs.append(UserInfoDTO(
-                                id: userIdStr,
-                                userType: user.userType,
-                                name: user.name,
-                                username: user.username))
         }
         return userDTOs
     }
@@ -61,7 +43,8 @@ struct UserController: RouteCollection {
         guard let user = try await User.find(req.parameters.get("userID"), on: req.db) else {
             throw Abort(.notFound)
         }
-        guard let userMakingRequest = await getUserFromRequest(req: req) else {
+        guard let userMakingRequest = req.auth.get(User.self) else {
+            req.logger.info("GET /users/:userId: Cannot get User from request.")
             throw Abort(.internalServerError)
         }
         let userIdStr = try user.requireID().uuidString
