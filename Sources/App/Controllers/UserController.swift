@@ -7,7 +7,7 @@ struct UserController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let users = routes.grouped("users")
         users.get(use: userService.getUserMakingRequest)
-        users.group(":userID") { user in
+        users.group(":userId") { user in
             user.get(use: get)
         }
     }

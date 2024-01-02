@@ -7,12 +7,27 @@ struct SpeakerController: RouteCollection {
     func boot(routes: RoutesBuilder) throws {
         let speakers = routes.grouped("speakers")
         speakers.get(use: getUserSpeakers)
+        speakers.post(use: createNewSpeaker)
         speakers.group(":speakerId") { speaker in
             speaker.get(use: getById)
             speaker.put(use: updateSpeaker)
             speaker.delete(use: deleteSpeaker)
         }
-        speakers.post(use: createNewSpeaker)
+
+        // For admin use:
+        routes.grouped("users").group(":userId") { user in
+            let userSpeakers = user.grouped("speakers")
+            userSpeakers.get(use: getSpecificUserSpeakers)
+            userSpeakers.post(use: createNewSpeakerForUser)
+        }
+    }
+
+    func getSpecificUserSpeakers(req: Request) async throws -> [Speaker] {
+        guard let userId = req.parameters.get("userId") else {
+            req.logger.info("getSpecificUserSpeakers: Cannot get userId from request.")
+            throw Abort(.badRequest)
+        }
+        return try await speakerService.getSpecificUserSpeakers(req: req, userId: userId)
     }
 
     func getUserSpeakers(req: Request) async throws -> [Speaker] {
@@ -33,6 +48,14 @@ struct SpeakerController: RouteCollection {
             throw Abort(.notAcceptable)
         }
         return try await speakerService.getSpeakerById(req: req, user: user, speakerId: speakerId)
+    }
+
+    func createNewSpeakerForUser(req: Request) async throws -> Speaker {
+        guard let userId = req.parameters.get("userId") else {
+            req.logger.info("createNewSpeakerForUser: Cannot get userId from request.")
+            throw Abort(.badRequest)
+        }
+        return try await speakerService.createNewSpeakerForUser(req: req, userId: userId)
     }
 
     func createNewSpeaker(req: Request) async throws -> Speaker {

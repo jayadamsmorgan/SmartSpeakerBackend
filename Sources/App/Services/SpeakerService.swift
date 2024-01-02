@@ -11,6 +11,21 @@ struct SpeakerService {
         return speaker
     }
 
+    func getSpecificUserSpeakers(req: Request, userId: String) async throws -> [Speaker] {
+        guard let user = try await User.find(UUID(userId), on: req.db) else {
+            req.logger.info("getSpecificUserSpeakers: Cannot find user with ID \(userId).")
+            throw Abort(.notFound)
+        }
+        guard let userMakingRequest = req.auth.get(User.self) else {
+            req.logger.info("getSpecificUserSpeakers: Cannot get user making request.")
+            throw Abort(.internalServerError)
+        }
+        if try userMakingRequest.requireID().uuidString != user.requireID().uuidString && userMakingRequest.userType != .admin {
+            throw Abort(.unauthorized)
+        }
+        return try await getUserSpeakers(req: req, user: user)
+    }
+
     func getUserSpeakers(req: Request, user: User) async throws -> [Speaker] {
         try await Speaker.query(on: req.db).filter("userId", .equal, user.requireID()).all()
     }
@@ -21,6 +36,14 @@ struct SpeakerService {
             throw Abort(.unauthorized)
         }
         return speaker
+    }
+
+    func createNewSpeakerForUser(req: Request, userId: String) async throws -> Speaker {
+        guard let user = try await User.find(UUID(userId), on: req.db) else {
+            req.logger.info("createNewSpeakerForUser: Cannot find user with ID \(userId).")
+            throw Abort(.notFound)
+        }
+        return try await createNewSpeaker(req: req, user: user)
     }
 
     func createNewSpeaker(req: Request, user: User) async throws -> Speaker {

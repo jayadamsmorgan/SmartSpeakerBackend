@@ -39,7 +39,6 @@ final class User: Model, Content, Authenticatable {
         self.email = email
         self.name = name
         self.passwordHash = passwordHash
-        self.speakers = []
     }
 
 }
