@@ -14,9 +14,11 @@ public func configure(_ app: Application) async throws {
     app.passwords.use(.bcrypt)
     app.migrations.add(CreateToken())
     app.migrations.add(CreateUser())
+    app.migrations.add(CreateSpeaker())
 
     try await app.autoMigrate()
 
     // register routes
     try routes(app)
 }
+

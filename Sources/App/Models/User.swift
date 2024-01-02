@@ -22,6 +22,9 @@ final class User: Model, Content, Authenticatable {
     @Field(key: "password")
     var passwordHash: String
 
+    @Children(for: \.$user)
+    var speakers: [Speaker]
+
     init() { }
 
     init(id: UUID? = nil,
@@ -36,6 +39,7 @@ final class User: Model, Content, Authenticatable {
         self.email = email
         self.name = name
         self.passwordHash = passwordHash
+        self.speakers = []
     }
 
 }
@@ -53,4 +57,9 @@ struct UserInfoDTO: Content {
     var email: String?
 }
 
+struct UserUpdateDTO: Content {
+    var name: String
+    var username: String
+    var email: String
+}
 

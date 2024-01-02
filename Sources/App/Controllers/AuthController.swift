@@ -10,11 +10,16 @@ struct AuthController: RouteCollection {
         authRoutes.post("register", use: register)
     }
 
-    fileprivate func createNewToken(userId: UUID, req: Request) async throws -> Token {
+    func createNewToken(userId: UUID, req: Request) async throws -> Token {
         let jwtPayload = SessionToken(userId: userId)
         let tokenStr = try req.jwt.sign(jwtPayload)
         let newToken = Token(token: tokenStr, userId: userId)
-        try await newToken.save(on: req.db)
+        do {
+            try await newToken.save(on: req.db)
+        } catch {
+            req.logger.info("createNewToken: Cannot save token for user with ID \(userId.uuidString).")
+            throw Abort(.internalServerError)
+        }
         req.logger.info("New token for user with ID \(userId) saved successfully.")
         return newToken
     }
@@ -24,7 +29,7 @@ struct AuthController: RouteCollection {
         logger.info("Authenticate: New authentication request: \(req.content).")
         let authDTO = try req.content.decode(AuthDTO.self)
         var user: User?
-        // Find user by either username, email or phoneNumber, whichever one is provided in AuthDTO request
+        // Find user by either username, or email, whichever one is provided in AuthDTO request
         let userQuery = User.query(on: req.db)
         if let username = authDTO.username {
             user = try await userQuery

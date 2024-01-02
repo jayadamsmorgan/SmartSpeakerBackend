@@ -19,3 +19,4 @@ enum Entrypoint {
         try await app.execute()
     }
 }
+

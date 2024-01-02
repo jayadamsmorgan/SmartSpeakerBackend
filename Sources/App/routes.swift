@@ -9,4 +9,8 @@ func routes(_ app: Application) throws {
     // Users
     try app.grouped(UserAuthenticator()).register(collection: UserController())
 
+    // Speakers
+    try app.grouped(UserAuthenticator()).register(collection: SpeakerController())
+
 }
+

@@ -2,7 +2,6 @@ import Vapor
 import Fluent
 import JWT
 
-
 struct SessionToken: Content, Authenticatable, JWTPayload {
 
     var expiration: ExpirationClaim

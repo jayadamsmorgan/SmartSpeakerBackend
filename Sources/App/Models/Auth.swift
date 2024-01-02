@@ -15,18 +15,3 @@ struct AuthDTO: Content {
 
 }
 
-struct AuthResponse: Content {
-    let error: String?
-    let token: String?
-
-    init(error: String) {
-        self.error = error
-        self.token = nil
-    }
-
-    init(token: String) {
-        self.token = token
-        self.error = nil
-    }
-}
-
