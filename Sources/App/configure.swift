@@ -10,7 +10,11 @@ public func configure(_ app: Application) async throws {
     // app.middleware.use(FileMiddleware(publicDirectory: app.directory.publicDirectory))
     
     // Use SQLite local database
-    app.databases.use(DatabaseConfigurationFactory.sqlite(.file("db.sqlite")), as: .sqlite)
+    if app.environment == .testing {
+        app.databases.use(DatabaseConfigurationFactory.sqlite(.memory), as: .sqlite)
+    } else {
+        app.databases.use(DatabaseConfigurationFactory.sqlite(.file("db.sqlite")), as: .sqlite)
+    }
 
     // Use HS256 encryption for JWT signers
     app.jwt.signers.use(.hs256(key: "some-secret-key"))
