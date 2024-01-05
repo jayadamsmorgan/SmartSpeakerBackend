@@ -20,7 +20,11 @@ public func configure(_ app: Application) async throws {
     app.jwt.signers.use(.hs256(key: "some-secret-key"))
 
     // Use BCrypt encryption for passwords
-    app.passwords.use(.bcrypt)
+    if app.environment == .testing {
+        app.passwords.use(.plaintext)
+    } else {
+        app.passwords.use(.bcrypt)
+    }
 
     // Database migrations setup
     app.migrations.add(CreateToken())

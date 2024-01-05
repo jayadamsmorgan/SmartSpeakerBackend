@@ -9,7 +9,7 @@ struct SpeakerController: RouteCollection {
         speakers.get(use: getUserSpeakers)
         speakers.post(use: createNewSpeaker)
         speakers.group(":speakerId") { speaker in
-            speaker.get(use: getById)
+            speaker.get(use: getSpeakerById)
             speaker.put(use: updateSpeaker)
             speaker.delete(use: deleteSpeaker)
         }
@@ -27,27 +27,27 @@ struct SpeakerController: RouteCollection {
             req.logger.info("getSpecificUserSpeakers: Cannot get userId from request.")
             throw Abort(.badRequest)
         }
-        return try await speakerService.getSpecificUserSpeakers(req: req, userId: userId)
+        return try await speakerService.getSpecificUserSpeakers(req: req, forId: userId)
     }
 
     func getUserSpeakers(req: Request) async throws -> [Speaker] {
         guard let user = req.auth.get(User.self) else {
-            req.logger.info("GET /speakers: Cannot get user from request.")
-            throw Abort(.internalServerError)
+            req.logger.info("getUserSpeakers: Cannot get user from request.")
+            throw Abort(.unauthorized)
         }
-        return try await speakerService.getUserSpeakers(req: req, user: user)
+        return try await speakerService.getUserSpeakers(req: req, userMakingRequest: user)
     }
 
-    func getById(req: Request) async throws -> Speaker {
+    func getSpeakerById(req: Request) async throws -> Speaker {
         guard let user = req.auth.get(User.self) else {
-            req.logger.info("GET /speakers/:id: Cannot get user from request.")
-            throw Abort(.internalServerError)
+            req.logger.info("getSpeakerById: Cannot get user from request.")
+            throw Abort(.unauthorized)
         }
         guard let speakerId = req.parameters.get("speakerId") else {
-            req.logger.info("GET /speakers/:id: Cannot get speakerId from request.")
-            throw Abort(.notAcceptable)
+            req.logger.info("getSpeakerById: Cannot get speakerId from request.")
+            throw Abort(.badRequest)
         }
-        return try await speakerService.getSpeakerById(req: req, user: user, speakerId: speakerId)
+        return try await speakerService.getSpeakerById(req: req, userMakingRequest: user, speakerId: speakerId)
     }
 
     func createNewSpeakerForUser(req: Request) async throws -> Speaker {
@@ -55,39 +55,39 @@ struct SpeakerController: RouteCollection {
             req.logger.info("createNewSpeakerForUser: Cannot get userId from request.")
             throw Abort(.badRequest)
         }
-        return try await speakerService.createNewSpeakerForUser(req: req, userId: userId)
+        return try await speakerService.createNewSpeakerForUser(req: req, forId: userId)
     }
 
     func createNewSpeaker(req: Request) async throws -> Speaker {
         guard let user = req.auth.get(User.self) else {
-            req.logger.info("POST /speakers: Cannot get user from request.")
-            throw Abort(.internalServerError)
+            req.logger.info("createNewSpeaker: Cannot get user from request.")
+            throw Abort(.unauthorized)
         }
         return try await speakerService.createNewSpeaker(req: req, user: user)
     }
 
     func updateSpeaker(req: Request) async throws -> Speaker {
         guard let user = req.auth.get(User.self) else {
-            req.logger.info("PUT /speakers/:id: Cannot get user from request.")
-            throw Abort(.internalServerError)
+            req.logger.info("updateSpeaker: Cannot get user from request.")
+            throw Abort(.unauthorized)
         }
         guard let speakerId = req.parameters.get("speakerId") else {
-            req.logger.info("PUT /speakers/:id: Cannot get speakerId from request.")
-            throw Abort(.notAcceptable)
+            req.logger.info("updateSpeaker: Cannot get speakerId from request.")
+            throw Abort(.badRequest)
         }
         return try await speakerService.updateUserSpeaker(req: req, user: user, speakerId: speakerId)
     }
 
     func deleteSpeaker(req: Request) async throws -> HTTPStatus {
         guard let user = req.auth.get(User.self) else {
-            req.logger.info("DELETE /speakers/:id: Cannot get user from request.")
-            throw Abort(.internalServerError)
+            req.logger.info("deleteSpeaker: Cannot get user from request.")
+            throw Abort(.unauthorized)
         }
         guard let speakerId = req.parameters.get("speakerId") else {
-            req.logger.info("DELETE /speakers/:id: Cannot get speakerId from request.")
-            throw Abort(.notAcceptable)
+            req.logger.info("deleteSpeaker: Cannot get speakerId from request.")
+            throw Abort(.badRequest)
         }
-        return try await speakerService.deleteUserSpeaker(req: req, user: user, speakerId: speakerId)
+        return try await speakerService.deleteUserSpeaker(req: req, userMakingRequest: user, speakerId: speakerId)
     }
 }
 

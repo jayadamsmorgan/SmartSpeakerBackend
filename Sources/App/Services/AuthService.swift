@@ -64,6 +64,8 @@ struct AuthService {
             user = try await userQuery
                 .filter("email", .equal, email)
                 .first()
+        } else {
+            throw Abort(.badRequest)
         }
         guard let user = user else {
             logger.info("Authenticate: Authenticating user not found.")
@@ -80,7 +82,7 @@ struct AuthService {
         }
         if try !req.password.verify(userpassword, created: user.passwordHash){
             logger.info("Authenticate: Wrong password provided for authentication request \(authDTO).")
-            throw Abort(.badRequest)
+            throw Abort(.forbidden)
         }
         let userTokens = try await Token.query(on: req.db)
             .filter("userId", .equal, userId)
