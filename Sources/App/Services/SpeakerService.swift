@@ -43,6 +43,12 @@ struct SpeakerService {
             req.logger.info("createNewSpeakerForUser: Cannot find user with ID \(userId).")
             throw Abort(.notFound)
         }
+        guard let userMakingRequest = req.auth.get(User.self) else {
+            throw Abort(.unauthorized)
+        }
+        if try userMakingRequest.requireID().uuidString != user.requireID().uuidString && userMakingRequest.userType != .admin {
+            throw Abort(.unauthorized)
+        }
         return try await createNewSpeaker(req: req, user: user)
     }
 
