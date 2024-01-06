@@ -8,7 +8,12 @@ struct UserService {
             req.logger.info("getUserMakingRequest: Cannot get User from request.")
             throw Abort(.unauthorized)
         }
-        return try UserInfoDTO(id: user.requireID().uuidString, userType: user.userType, name: user.name, username: user.username)
+        return try UserInfoDTO(
+            id: user.requireID().uuidString,
+            userType: user.userType,
+            name: user.name,
+            username: user.username,
+            email: user.email)
     }
 
     func getUserById(req: Request, userId: String) async throws -> UserInfoDTO {

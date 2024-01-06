@@ -12,11 +12,6 @@ final class UserControllerTests: XCTestCase {
     fileprivate static var adminUserId = UUID()
     fileprivate static var adminUserToken = ""
 
-    func randomString(length: Int) -> String {
-      let letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-      return String((0..<length).map{ _ in letters.randomElement()! })
-    }
-
     override class func setUp() {
         super.setUp()
         let semaphore = DispatchSemaphore(value: 0)
@@ -62,18 +57,15 @@ final class UserControllerTests: XCTestCase {
     func testGetUserMakingRequestWhenAuthenticated() async throws {
         let app = UserControllerTests.app
 
-        // Get current user info
         try app.test(.GET, "users",
             beforeRequest: { req in
                 req.headers.bearerAuthorization = BearerAuthorization(token: UserControllerTests.timUserToken)
             }, afterResponse: { res in
                 XCTAssertEqual(res.status, .ok)
-                XCTAssertNoThrow {
-                    let user = try res.content.decode(UserInfoDTO.self)
-                    XCTAssertNotNil(user)
-                    XCTAssertEqual(user.username, "tim")
-                    XCTAssertEqual(user.email, "tim@example.com")
-                }
+                let user = try res.content.decode(UserInfoDTO.self)
+                XCTAssertNotNil(user)
+                XCTAssertEqual(user.username, "tim")
+                XCTAssertEqual(user.email, "tim@example.com")
             })
     }
 
@@ -87,10 +79,70 @@ final class UserControllerTests: XCTestCase {
             })
     }
 
+    func testGetUserByIdWhenAuthenticated() async throws {
+        let app = UserControllerTests.app
+
+        let userId = UserControllerTests.timUserId.uuidString
+        try app.test(.GET, "users/\(userId)",
+            beforeRequest: { req in
+                req.headers.bearerAuthorization = BearerAuthorization(token: UserControllerTests.timUserToken)
+            }, afterResponse: { res in
+                XCTAssertEqual(res.status, .ok)
+                let user = try res.content.decode(UserInfoDTO.self)
+                XCTAssertNotNil(user)
+                XCTAssertEqual(user.username, "tim")
+                XCTAssertEqual(user.email, "tim@example.com")
+            })
+    }
+
+    func testGetUserByIdWhenNotAuthenticated() async throws {
+        let app = UserControllerTests.app
+
+        let userId = UserControllerTests.timUserId.uuidString
+        try app.test(.GET, "users/\(userId)",
+            afterResponse: { res in
+                XCTAssertEqual(res.status, .unauthorized)
+            })
+    }
+
+    func testGetUserByAdmin() async throws {
+        let app = UserControllerTests.app
+
+        let userId = UserControllerTests.timUserId.uuidString
+        try app.test(.GET, "users/\(userId)",
+            beforeRequest: { req in
+                req.headers.bearerAuthorization = BearerAuthorization(token: UserControllerTests.adminUserToken)
+            }, afterResponse: { res in
+                XCTAssertEqual(res.status, .ok)
+                let user = try res.content.decode(UserInfoDTO.self)
+                XCTAssertNotNil(user)
+                XCTAssertEqual(user.username, "tim")
+                XCTAssertEqual(user.email, "tim@example.com")
+            })
+    }
+
+    func testGetAdminByUser() async throws {
+        let app = UserControllerTests.app
+
+        let userId = UserControllerTests.adminUserId.uuidString
+        try app.test(.GET, "users/\(userId)",
+            beforeRequest: { req in
+                req.headers.bearerAuthorization = BearerAuthorization(token: UserControllerTests.timUserToken)
+            }, afterResponse: { res in
+                XCTAssertEqual(res.status, .ok)
+                let user = try res.content.decode(UserInfoDTO.self)
+                XCTAssertNotNil(user)
+                XCTAssertTrue(user.name == "Admin")
+                XCTAssertEqual(user.username, "admin")
+                XCTAssertNil(user.email)
+                XCTAssertTrue(user.userType == .admin)
+            })
+    }
+
     func testUpdateUserWhenAuthenticatedAndCorrectRequest() async throws {
         let app = UserControllerTests.app
 
-        let newName = randomString(length: 10)
+        let newName = "testUserName"
 
         // Update user
         try app.test(.PUT, "users",
@@ -100,18 +152,16 @@ final class UserControllerTests: XCTestCase {
                 try req.content.encode(updateDTO)
             }, afterResponse: { res in
                 XCTAssertEqual(res.status, .ok)
-                XCTAssertNoThrow {
-                    let user = try res.content.decode(UserInfoDTO.self)
-                    XCTAssertNotNil(user)
-                    XCTAssertEqual(user.name, newName)
-                }
+                let user = try res.content.decode(UserInfoDTO.self)
+                XCTAssertNotNil(user)
+                XCTAssertEqual(user.name, newName)
             })
     }
 
     func testUpdateUserWhenAuthenticatedAndBadRequest() async throws {
         let app = UserControllerTests.app
 
-        let newName = randomString(length: 10)
+        let newName = "testUserName"
 
         // Update user
         try app.test(.PUT, "users",
@@ -125,10 +175,48 @@ final class UserControllerTests: XCTestCase {
             })
     }
 
+    func testUpdateUserByAdminAndCorrectRequest() async throws {
+        let app = UserControllerTests.app
+
+        let newName = "testAdminName"
+
+        let userId = UserControllerTests.timUserId.uuidString
+        // Update user
+        try app.test(.PUT, "users/\(userId)",
+            beforeRequest: { req in
+                req.headers.bearerAuthorization = BearerAuthorization(token: UserControllerTests.adminUserToken)
+                let updateDTO = UserUpdateDTO(name: newName, username: "tim", email: "tim@example.com")
+                try req.content.encode(updateDTO)
+            }, afterResponse: { res in
+                XCTAssertEqual(res.status, .ok)
+                let user = try res.content.decode(UserInfoDTO.self)
+                XCTAssertNotNil(user)
+                XCTAssertEqual(user.name, newName)
+            })
+    }
+
+    func testUpdateUserByAdminAndBadRequest() async throws {
+        let app = UserControllerTests.app
+
+        let newName = "testAdminName"
+
+        let userId = UserControllerTests.timUserId.uuidString
+        // Update user
+        try app.test(.PUT, "users/\(userId)",
+            beforeRequest: { req in
+                req.headers.bearerAuthorization = BearerAuthorization(token: UserControllerTests.adminUserToken)
+                try req.content.encode([
+                    "notName" : newName
+                ])
+            }, afterResponse: { res in
+                XCTAssertEqual(res.status, .badRequest)
+            })
+    }
+
     func testUpdateUserWhenNotAuthenticatedAndCorrectRequest() async throws {
         let app = UserControllerTests.app
 
-        let newName = randomString(length: 10)
+        let newName = "testNName"
 
         // Update user
         try app.test(.PUT, "users",
@@ -144,7 +232,7 @@ final class UserControllerTests: XCTestCase {
     func testUpdateUserWhenNotAuthenticatedAndBadRequest() async throws {
         let app = UserControllerTests.app
 
-        let newName = randomString(length: 10)
+        let newName = "testNName"
 
         // Update user
         try app.test(.PUT, "users",

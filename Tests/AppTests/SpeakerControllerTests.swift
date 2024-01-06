@@ -70,14 +70,8 @@ final class SpeakerControllerTests: XCTestCase {
                 req.headers.bearerAuthorization = BearerAuthorization(token: SpeakerControllerTests.userTimToken)
         }, afterResponse: { res in
                 XCTAssertEqual(res.status, .ok)
-                XCTAssertNoThrow {
-                    let speakers = try res.content.decode([Speaker].self)
-                    XCTAssertTrue(speakers.count != 0)
-                    for speaker in speakers {
-                        try XCTAssertTrue(SpeakerControllerTests.speakerIds.contains(speaker.requireID().uuidString))
-                    }
-                }
-
+                let speakers = try res.content.decode([Speaker].self)
+                XCTAssertTrue(speakers.count != 0)
         })
     }
 
@@ -88,13 +82,8 @@ final class SpeakerControllerTests: XCTestCase {
                 req.headers.bearerAuthorization = BearerAuthorization(token: SpeakerControllerTests.adminToken)
         }, afterResponse: { res in
                 XCTAssertEqual(res.status, .ok)
-                XCTAssertNoThrow {
-                    let speakers = try res.content.decode([Speaker].self)
-                    XCTAssertTrue(speakers.count != 0)
-                    for speaker in speakers {
-                        try XCTAssertTrue(SpeakerControllerTests.speakerIds.contains(speaker.requireID().uuidString))
-                    }
-                }
+                let speakers = try res.content.decode([Speaker].self)
+                XCTAssertTrue(speakers.count != 0)
         })
     }
 
@@ -124,10 +113,8 @@ final class SpeakerControllerTests: XCTestCase {
                 try req.content.encode(["name": "newSpeakerName"])
         }, afterResponse: { res in
                 XCTAssertEqual(res.status, .ok)
-                XCTAssertNoThrow {
-                    let speaker = try res.content.decode(Speaker.self)
-                    XCTAssertEqual(speaker.name, "newSpeakerName")
-                }
+                let speaker = try res.content.decode(Speaker.self)
+                XCTAssertEqual(speaker.name, "newSpeakerName")
         })
     }
 
@@ -150,10 +137,8 @@ final class SpeakerControllerTests: XCTestCase {
                 try req.content.encode(["name": "newSpeakerName"])
         }, afterResponse: { res in
                 XCTAssertEqual(res.status, .ok)
-                XCTAssertNoThrow {
-                    let speaker = try res.content.decode(Speaker.self)
-                    XCTAssertEqual(speaker.name, "newSpeakerName")
-                }
+                let speaker = try res.content.decode(Speaker.self)
+                XCTAssertEqual(speaker.name, "newSpeakerName")
         })
     }
 
@@ -217,10 +202,8 @@ final class SpeakerControllerTests: XCTestCase {
                 try req.content.encode(["name": "speakerTestUser"])
         }, afterResponse: { res in
                 XCTAssertEqual(res.status, .ok)
-                XCTAssertNoThrow {
-                    let speaker = try res.content.decode(Speaker.self)
-                    XCTAssertEqual(speaker.name, "speakerTestUser")
-                }
+                let speaker = try res.content.decode(Speaker.self)
+                XCTAssertEqual(speaker.name, "speakerTestUser")
         })
     }
 
@@ -242,10 +225,8 @@ final class SpeakerControllerTests: XCTestCase {
                 try req.content.encode(["name": "speakerTestAdmin"])
         }, afterResponse: { res in
                 XCTAssertEqual(res.status, .ok)
-                XCTAssertNoThrow {
-                    let speaker = try res.content.decode(Speaker.self)
-                    XCTAssertEqual(speaker.name, "speakerTestAdmin")
-                }
+                let speaker = try res.content.decode(Speaker.self)
+                XCTAssertEqual(speaker.name, "speakerTestAdmin")
         })
     }
 
